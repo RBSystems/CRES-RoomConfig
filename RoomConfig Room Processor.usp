@@ -1,0 +1,77 @@
+#SYMBOL_NAME "RoomConfig Room Processor"
+#DEFAULT_VOLATILE
+#ENABLE_STACK_CHECKING
+#ENABLE_TRACE
+
+#DEFINE_CONSTANT MAX_PARAMS 100
+
+#USER_SIMPLSHARP_LIBRARY "RoomConfig"
+
+DIGITAL_INPUT
+    Update;
+STRING_INPUT
+    ParameterValueSet[MAX_PARAMS, MAX_PARAMS][255];
+STRING_OUTPUT
+    FilePathOut,
+    ParameterValue[MAX_PARAMS, MAX_PARAMS];
+
+STRING_PARAMETER
+    FilePath[255], // \\USER\\config.txt
+    ParameterKey[MAX_PARAMS, MAX_PARAMS][50];
+
+Config myConfig;
+
+integer loaded;
+
+STRING_FUNCTION ParamGet(string key) {
+    return(myConfig.ParamGet(key));
+}
+
+FUNCTION ParamSet(string key, string value) {
+    myConfig.ParamSet(key, value);
+}
+
+FUNCTION LookForParamValues() {
+    integer param;
+    
+    for(param = 1 to MAX_PARAMS) {
+        ParameterValue[param] = ParamGet(ParameterKey[param]);
+    }
+}
+
+PUSH Update {
+    if(loaded) {
+        myConfig.Load();
+        LookForParamValues();
+        FilePathOut = FilePath;
+    }
+}
+
+CHANGE ParameterValueSet {
+    integer param;
+    
+    param = getLastModifiedArrayIndex();
+    
+    if(loaded) {
+        ParamSet(ParameterKey[param], ParameterValueSet[param]);
+        ParameterValue[param] = ParamGet(ParameterKey[param]);
+    }
+}
+
+FUNCTION Main() {
+    integer param;
+    
+    loaded = 0;
+    WaitForInitializationComplete();
+    myConfig.Init(FilePath);
+    
+    for(param = 1 to MAX_PARAMS) {
+        myConfig.ParamKeyAdd(ParameterKey[param]);
+    }
+    
+    myConfig.Load();
+    loaded = 1;
+    LookForParamValues();
+    
+    FilePathOut = FilePath;
+}

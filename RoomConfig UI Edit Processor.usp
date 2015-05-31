@@ -1,0 +1,79 @@
+#SYMBOL_NAME "RoomConfig UI Edit Processor"
+#DEFAULT_VOLATILE
+#ENABLE_STACK_CHECKING
+#ENABLE_TRACE
+
+#DEFINE_CONSTANT MAX_PARAMS 100
+
+#USER_SIMPLSHARP_LIBRARY "RoomConfig"
+
+DIGITAL_INPUT
+	Load,
+    Cancel,
+    Save;
+ANALOG_INPUT
+    ListItemSelect;
+STRING_INPUT
+    FilePath[255],
+    TextFieldIn[255];
+
+DIGITAL_OUTPUT
+    Saved;
+ANALOG_OUTPUT
+    ListSize,
+    ListPos,
+    ListItemSelectFb;
+STRING_OUTPUT
+    SelectedKeyName,
+    TextFieldOut,
+    ListItemTitle[MAX_PARAMS, MAX_PARAMS];
+
+Config myConfig;
+
+integer selectedListItem;
+
+FUNCTION ListUpdate() {
+    integer n;
+    
+    ListSize = myConfig.ParamCount;
+    
+    for(n = 1 to myConfig.ParamCount) {
+        ListItemTitle[n] = myConfig.EditParamKeyAtIndex(n - 1);
+    }
+}
+
+FUNCTION ListSelect(integer item) {
+    selectedListItem = item;
+    ListItemSelectFb = selectedListItem;
+    SelectedKeyName = myConfig.EditParamKeyAtIndex(selectedListItem - 1);
+    TextFieldOut = myConfig.EditParamGet(myConfig.EditParamKeyAtIndex(selectedListItem - 1));
+}
+
+PUSH Load {
+    myConfig.Init(FilePath);
+    myConfig.Load();
+    ListUpdate();
+    ListSelect(1);
+    ListPos = selectedListItem;
+}
+
+CHANGE ListItemSelect {
+    ListSelect(ListItemSelect);
+}
+
+CHANGE TextFieldIn {
+    myConfig.EditParamSet(myConfig.EditParamKeyAtIndex(selectedListItem - 1), TextFieldIn);
+}
+
+PUSH Cancel {
+    
+}
+
+PUSH Save {
+    myConfig.EditParamsSave();
+    Pulse(1, Saved);
+}
+
+FUNCTION Main() {
+    
+}
